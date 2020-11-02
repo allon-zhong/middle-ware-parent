@@ -24,16 +24,16 @@ public class RuleEngineServiceImpl implements RuleEngineService {
         paramInfo.setCreateTime(new Date());
         paramInfo.setUpdateTime(new Date());
         ParamInfoService paramInfoService = (ParamInfoService)SpringContextUtil.getBean("paramInfoService") ;
-        paramInfoService.insertParam(paramInfo);
+//        paramInfoService.insertParam(paramInfo);
     }
 
     @Override
     public void executeRemoveRule(QueryParam param) {
         LOGGER.info("参数数据:"+param.getParamId()+";"+param.getParamSign());
         ParamInfoService paramInfoService = (ParamInfoService)SpringContextUtil.getBean("paramInfoService") ;
-        ParamInfo paramInfo = paramInfoService.selectById(param.getParamId());
-        if (paramInfo != null){
-            paramInfoService.removeById(param.getParamId()) ;
-        }
+//        ParamInfo paramInfo = paramInfoService.selectById(param.getParamId());
+//        if (paramInfo != null){
+//            paramInfoService.removeById(param.getParamId()) ;
+//        }
     }
 }

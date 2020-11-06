@@ -4,12 +4,19 @@ import com.zoo.keeper.config.ZookeeperConfig;
 import com.zoo.keeper.service.ZookeeperService;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.api.CuratorEvent;
+import org.apache.curator.framework.api.CuratorListener;
+import org.apache.curator.framework.recipes.cache.*;
 import org.apache.curator.framework.recipes.locks.InterProcessReadWriteLock;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,6 +45,7 @@ public class ZookeeperServiceImpl implements ZookeeperService {
         try {
             // 递归创建所需父节点
             client.create().creatingParentsIfNeeded().withMode(mode).forPath(path);
+
         } catch (Exception e) {
             LOGGER.error("createNode error...", e);
             e.printStackTrace();
@@ -124,4 +132,117 @@ public class ZookeeperServiceImpl implements ZookeeperService {
         InterProcessReadWriteLock readWriteLock = new InterProcessReadWriteLock(client, path);
         return readWriteLock ;
     }
+
+    /**
+     * nodecache监听, 能监听增删改事件, 但获取不到事件类型
+     * @param path 节点路径
+     * @return void
+     */
+    @Override
+    public NodeCache registerNodeCacheListener(String path){
+        try {
+            //1. 创建一个NodeCache
+            CuratorFramework client = ZookeeperConfig.getClient() ;
+            NodeCache nodeCache = new NodeCache(client, path);
+            nodeCache.getListenable().addListener(() -> {
+                System.out.println("触发监听");
+                ChildData childData = nodeCache.getCurrentData();
+                if(childData != null){
+                    System.out.println("Path: " + childData.getPath());
+                    System.out.println("Stat:" + childData.getStat());
+                    System.out.println("Data: "+ new String(childData.getData()));
+                }
+            });
+
+            //3. 启动监听器
+            nodeCache.start();
+
+            //4. 返回NodeCache
+            return nodeCache;
+        } catch (Exception e) {
+            LOGGER.error(MessageFormat.format("注册节点监听器出现异常,nodePath:{0}",path),e);
+        }
+        return null;
+    }
+
+
+    /**
+     * watch 监听，一次性的, 而且不能监听到新增节点事件
+     * @param path
+     */
+    @Override
+    public void registerNode(String path){
+        CuratorFramework client = ZookeeperConfig.getClient() ;
+        try {
+            // 设置节点监听
+            client.getData().usingWatcher(new Watcher() {
+                @Override
+                public void process(WatchedEvent watchedEvent) {
+                    Event.EventType type = watchedEvent.getType();
+                    System.out.println("事件类型："+type);
+                    System.out.println("Path: " + watchedEvent.getPath());
+                    System.out.println("Stat:" + watchedEvent.getState());
+                    try {
+                        System.out.println("Data: "+ client.getChildren().forPath(path));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).forPath(path);
+        } catch (Exception e) {
+            LOGGER.error("setNodeListener error...", e);
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 这个测试没有成功监听到,不知道为啥...
+     * @param path 节点路径
+     * @return void
+     */
+    @Override
+    public void registerCuratorListener(String path){
+        try {
+            CuratorFramework client = ZookeeperConfig.getClient() ;
+            //1. 创建一个CuratorListener
+            CuratorListener listener = new CuratorListener() {
+                @Override
+                public void eventReceived(CuratorFramework client, CuratorEvent event) throws Exception {
+                    System.out.println("监听事件触发，event内容为：" + event.toString());
+                }
+            };
+            client.getCuratorListenable().addListener(listener);
+            client.getData().inBackground().forPath(path);
+            System.out.println("监听节点成功");
+
+        } catch (Exception e) {
+            LOGGER.error(MessageFormat.format("注册节点监听器出现异常,nodePath:{0}",path),e);
+        }
+    }
+
+    /**
+     * 监听父节点下面的子节点的 增删改事件
+     * @param parentPath 节点路径
+     * @return void
+     */
+    @Override
+    public void registerChildrenCacheListener(String parentPath){
+        try {
+            CuratorFramework client = ZookeeperConfig.getClient() ;
+            //1. 创建一个CuratorListener
+            PathChildrenCache pathChildrenCache = new PathChildrenCache(client,parentPath,true);
+            pathChildrenCache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
+            pathChildrenCache.getListenable().addListener(new PathChildrenCacheListener() {
+                @Override
+                public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) throws Exception {
+                    System.out.println("事件类型："  + event.getType() + "；操作节点：" + event.getData().getPath());
+                }
+            });
+            System.out.println("监听节点成功");
+
+        } catch (Exception e) {
+            LOGGER.error(MessageFormat.format("注册节点监听器出现异常,nodePath:{0}",parentPath),e);
+        }
+    }
+
 }

@@ -1,5 +1,6 @@
 package com.zoo.keeper.service;
 
+import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.locks.InterProcessReadWriteLock;
 import org.apache.zookeeper.CreateMode;
 import java.util.List;
@@ -37,4 +38,12 @@ public interface ZookeeperService {
      * 获取读写锁
      */
     InterProcessReadWriteLock getReadWriteLock (String path) ;
+
+    NodeCache registerNodeCacheListener(String path);
+
+    void registerNode(String path) ;
+
+    void registerCuratorListener(String path);
+
+    void registerChildrenCacheListener(String parentPath);
 }

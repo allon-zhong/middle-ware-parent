@@ -61,4 +61,32 @@ public class ZookeeperApi {
         zookeeperService.deleteNode(path,recursive) ;
         return "success" ;
     }
+
+    @ApiOperation(value="注册监听")
+    @GetMapping("/registerNodeCacheListener")
+    public String registerNodeCacheListener (String path) {
+        zookeeperService.registerNodeCacheListener(path);
+        return "success" ;
+    }
+
+    @ApiOperation(value="注册监听")
+    @GetMapping("/addWatchListener")
+    public String addWatchListener (String path) {
+        zookeeperService.registerNode(path);
+        return "success" ;
+    }
+
+    @ApiOperation(value="注册监听")
+    @GetMapping("/registerCuratorListener")
+    public String registerCuratorListener (String path) {
+        zookeeperService.registerCuratorListener(path);
+        return "success" ;
+    }
+
+    @ApiOperation(value="注册监听")
+    @GetMapping("/registerChildrenCacheListener")
+    public String registerChildrenCacheListener (String path) {
+        zookeeperService.registerChildrenCacheListener(path);
+        return "success" ;
+    }
 }
